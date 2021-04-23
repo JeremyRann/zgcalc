@@ -19,8 +19,10 @@ string Token::TypeName(const TokenType type)
 			return "Substitutable";
 		case TokenType::Operator:
 			return "Operator";
-		case TokenType::Grouping:
-			return "Grouping";
+		case TokenType::OpenGrouping:
+			return "Open Grouping";
+		case TokenType::CloseGrouping:
+			return "Close Grouping";
 		case TokenType::Comma:
 			return "Comma";
 		default:

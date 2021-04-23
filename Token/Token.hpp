@@ -11,7 +11,8 @@ public:
 		Literal,
 		Substitutable,
 		Operator,
-		Grouping,
+		OpenGrouping,
+		CloseGrouping,
 		Comma
 	};
 

@@ -1,11 +1,11 @@
 #include "TokenCollection.hpp"
-#include <unordered_set>
+#include <stack>
 #include <string>
-#include <exception>
 #include <sstream>
 
 using std::string;
 using std::stringstream;
+using std::stack;
 
 TokenCollection::TokenCollection()
 {
@@ -59,27 +59,33 @@ void TokenCollection::ParseExpression(const string expression)
 
 	enum class CharacterType
 	{
-		// All Unary operators are potentially binary operators
 		Unknown,
+		// All Unary operators are potentially binary operators
 		UnaryOperator,
 		BinaryOperator,
 		Number,
 		Letter,
-		Grouping,
+		Period,
+		OpenGrouping,
+		CloseGrouping,
 		WhiteSpace
 	};
 	
 	ParserState state = ParserState::Blank;
+	CharacterType type = CharacterType::Unknown;
 
 	ExpressionRef *currentExpressionRef = NULL;
 	Token *currentToken = NULL;
 	bool expEncountered;
 	bool dotEncountered;
+	bool prevCharExp = false;
+	bool prevCharExpSign = false;
+	stack<unsigned int> openGroupChars;
 
 	for (unsigned int i = 0; i < expression.length(); i++)
 	{
 		char current = expression[i];
-		CharacterType type = CharacterType::Unknown;
+		type = CharacterType::Unknown;
 
 		if (current >= 0x30 && current <= 0x39)
 		{
@@ -89,17 +95,25 @@ void TokenCollection::ParseExpression(const string expression)
 		{
 			type = CharacterType::Letter;
 		}
+		else if (current == '.')
+		{
+			type = CharacterType::Period;
+		}
 		else if (current == '-' || current == '+')
 		{
 			type = CharacterType::UnaryOperator;
 		}
-		else if (current == '*' || current == '/')
+		else if (current == '*' || current == '/' || current == '^')
 		{
 			type = CharacterType::BinaryOperator;
 		}
-		else if (current == '(' || current == ')' || current == '[' || current == ']' || current == '{' || current == '}')
+		else if (current == '(' || current == '[' || current == '{')
 		{
-			type = CharacterType::Grouping;
+			type = CharacterType::OpenGrouping;
+		}
+		else if (current == ')' || current == ']' ||  current == '}')
+		{
+			type = CharacterType::CloseGrouping;
 		}
 		else if (current == ' ' || current == '\t' || current == '\r' || current == '\n')
 		{
@@ -111,25 +125,35 @@ void TokenCollection::ParseExpression(const string expression)
 			return;
 		}
 
+		if ((prevCharExp && type != CharacterType::Number && type != CharacterType::UnaryOperator) ||
+			(prevCharExpSign && type != CharacterType::Number))
+		{
+			SetError("Invalid character encountered while parsing exponent", i);
+			return;
+		}
+
 		switch (type)
 		{
 			case CharacterType::Number:
 			case CharacterType::Letter:
+			case CharacterType::Period:
 				switch (state)
 				{
 					case ParserState::Blank:
 					case ParserState::BlankWithLHS:
-						if (type == CharacterType::Number)
+						switch (type)
 						{
-							state = ParserState::Literal;
-							currentToken = new Token(Token::TokenType::Literal, literals.size());
-							dotEncountered = false;
-							expEncountered = false;
-						}
-						else
-						{
-							state = ParserState::Substitutable;
-							currentToken = new Token(Token::TokenType::Substitutable, literals.size());
+							case CharacterType::Number:
+							case CharacterType::Period:
+								state = ParserState::Literal;
+								currentToken = new Token(Token::TokenType::Literal, literals.size());
+								dotEncountered = type == CharacterType::Period;
+								expEncountered = false;
+								break;
+							default:
+								state = ParserState::Substitutable;
+								currentToken = new Token(Token::TokenType::Substitutable, literals.size());
+								break;
 						}
 						currentExpressionRef = new ExpressionRef(i);
 						literals.push_back(currentExpressionRef);
@@ -160,6 +184,25 @@ void TokenCollection::ParseExpression(const string expression)
 								return;
 							}
 						}
+						if (type == CharacterType::Period)
+						{
+							if (state == ParserState::Substitutable)
+							{
+								SetError("Unexpected period encountered while parsing variable or function name", i);
+								return;
+							}
+							else if (expEncountered)
+							{
+								SetError("Invalid period encountered in numeric value exponent", i);
+								return;
+							}
+							else if (dotEncountered)
+							{
+								SetError("Period encountered twice while parsing numeric value", i);
+								return;
+							}
+							dotEncountered = true;
+						}
 						currentExpressionRef->End = i;
 						break;
 					default:
@@ -169,14 +212,22 @@ void TokenCollection::ParseExpression(const string expression)
 				break;
 			case CharacterType::UnaryOperator:
 			case CharacterType::BinaryOperator:
-				if (state == ParserState::Blank && type == CharacterType::BinaryOperator)
+				if (prevCharExp && type == CharacterType::UnaryOperator)
 				{
-					SetError("Unexpected binary operator found; expected left operand", i);
-					return;
+					prevCharExpSign = true;
+					currentExpressionRef->End = i;
 				}
-				currentToken = new Token(Token::TokenType::Operator, (int)current);
-				tokens.push_back(currentToken);
-				state = ParserState::Blank;
+				else
+				{
+					if (state == ParserState::Blank && type == CharacterType::BinaryOperator)
+					{
+						SetError("Unexpected binary operator found; expected left operand", i);
+						return;
+					}
+					currentToken = new Token(Token::TokenType::Operator, (int)current);
+					tokens.push_back(currentToken);
+					state = ParserState::Blank;
+				}
 				break;
 			case CharacterType::WhiteSpace:
 				switch (state)
@@ -191,7 +242,65 @@ void TokenCollection::ParseExpression(const string expression)
 						break;
 				}
 				break;
+			case CharacterType::OpenGrouping:
+				currentToken = new Token(Token::TokenType::OpenGrouping, (int)current);
+				tokens.push_back(currentToken);
+				openGroupChars.push(i);
+				state = ParserState::Blank;
+				break;
+			case CharacterType::CloseGrouping:
+				currentToken = new Token(Token::TokenType::CloseGrouping, (int)current);
+				tokens.push_back(currentToken);
+				if (openGroupChars.empty())
+				{
+					SetError("Unmatched close grouping character", i);
+					return;
+				}
+				else
+				{
+					bool mismatch = true;
+					switch (expression[openGroupChars.top()])
+					{
+						case '(':
+							mismatch = current != ')';
+							break;
+						case '[':
+							mismatch = current != ']';
+							break;
+						case '{':
+							mismatch = current != '}';
+							break;
+					}
+					if (mismatch)
+					{
+						SetError("Mismatched close grouping character", i);
+						return;
+					}
+				}
+				openGroupChars.pop();
+				state = ParserState::BlankWithLHS;
+				break;
 		}
+		prevCharExpSign = prevCharExp && type == CharacterType::UnaryOperator;
+		prevCharExp = state == ParserState::Literal && (current == 'e' || current == 'E');
+	}
+
+	if (!openGroupChars.empty())
+	{
+		SetError("Ummatched open grouping indicator", openGroupChars.top());
+		return;
+	}
+
+	if (prevCharExp || (prevCharExpSign))
+	{
+		SetError("Unexpected end of expression while parsing exponent", expression.length() - 1);
+		return;
+	}
+
+	if (!tokens.empty() && tokens[tokens.size() - 1]->Type == Token::TokenType::Operator)
+	{
+		SetError("Unexpected end of expression while waiting for right-hand side of operation", expression.length() - 1);
+		return;
 	}
 
 	// Sanity check: If there was a call to SetError, it should ALWAYS return immediately afterwards
@@ -208,14 +317,14 @@ bool TokenCollection::Success()
 
 TokenCollection::~TokenCollection()
 {
-	for (int i = 0; i < literals.size(); i++)
+	for (auto &element : literals)
 	{
-		delete literals[i];
+		delete element;
 	}
 
-	for (int i = 0; i < tokens.size(); i++)
+	for (auto &element : tokens)
 	{
-		delete tokens[i];
+		delete element;
 	}
 }
 
@@ -227,3 +336,4 @@ void TokenCollection::SetError(const char *msg, int pos)
 	builder << msg << " (" << pos + 1 << ")";
 	errorMessage = builder.str();
 }
+
