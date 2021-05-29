@@ -2,7 +2,7 @@
 #include <string>
 #include <boost/algorithm/string.hpp>
 #include <boost/format.hpp>
-#include "Token\TokenCollection.hpp"
+#include "TokenCollection.hpp"
 
 using std::string;
 using std::cout;

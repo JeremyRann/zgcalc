@@ -142,15 +142,15 @@
     </Link>
   </ItemDefinitionGroup>
   <ItemGroup>
-    <ClCompile Include="Token\ExpressionRef.cpp" />
-    <ClCompile Include="Token\Token.cpp" />
-    <ClCompile Include="Token\TokenCollection.cpp" />
+    <ClCompile Include="ExpressionRef.cpp" />
+    <ClCompile Include="Token.cpp" />
+    <ClCompile Include="TokenCollection.cpp" />
     <ClCompile Include="zgcalc.cpp" />
   </ItemGroup>
   <ItemGroup>
-    <ClInclude Include="Token\ExpressionRef.hpp" />
-    <ClInclude Include="Token\Token.hpp" />
-    <ClInclude Include="Token\TokenCollection.hpp" />
+    <ClInclude Include="ExpressionRef.hpp" />
+    <ClInclude Include="Token.hpp" />
+    <ClInclude Include="TokenCollection.hpp" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">

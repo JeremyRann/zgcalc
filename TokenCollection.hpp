@@ -1,4 +1,5 @@
 #pragma once
+#include <memory>
 #include <string>
 #include <vector>
 #include "Token.hpp"
@@ -6,20 +7,19 @@
 
 using std::string;
 using std::vector;
+using std::shared_ptr;
 
 class TokenCollection
 {
 private:
 	string expression;
-	vector<Token*> tokens;
-	// TODO: Maybe literals really is substitutables (shared between variables, functions, and literals)
-	vector<ExpressionRef*> literals;
+	vector<shared_ptr<Token>> tokens;
+	vector<shared_ptr<ExpressionRef>> substitutables;
 	bool success;
 	string errorMessage;
 	void SetError(const char *msg, int pos);
 public:
 	TokenCollection();
-	~TokenCollection();
 	string ErrorMessage();
 	string Info();
 	void ParseExpression(string expression);

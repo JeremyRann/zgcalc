@@ -1,11 +1,14 @@
 #include "TokenCollection.hpp"
+#include <memory>
+#include <sstream>
 #include <stack>
 #include <string>
-#include <sstream>
 
 using std::string;
 using std::stringstream;
 using std::stack;
+using std::shared_ptr;
+using std::make_shared;
 
 TokenCollection::TokenCollection()
 {
@@ -20,17 +23,17 @@ string TokenCollection::ErrorMessage()
 string TokenCollection::Info()
 {
 	stringstream builder;
-	builder << "Literals:\n";
-	for (unsigned int i = 0; i < literals.size(); i++)
+	builder << "Substitutables:\n";
+	for (unsigned int i = 0; i < substitutables.size(); i++)
 	{
 		builder
 			<< i
 			<< ": ("
-			<< literals[i]->Start
+			<< substitutables[i]->Start
 			<< ", "
-			<< literals[i]->End
+			<< substitutables[i]->End
 			<< ") "
-			<< expression.substr(literals[i]->Start, literals[i]->End - literals[i]->Start + 1)
+			<< expression.substr(substitutables[i]->Start, substitutables[i]->End - substitutables[i]->Start + 1)
 			<< "\n";
 	}
 
@@ -74,8 +77,8 @@ void TokenCollection::ParseExpression(const string expression)
 	ParserState state = ParserState::Blank;
 	CharacterType type = CharacterType::Unknown;
 
-	ExpressionRef *currentExpressionRef = NULL;
-	Token *currentToken = NULL;
+	shared_ptr<ExpressionRef> currentExpressionRef = NULL;
+	shared_ptr<Token> currentToken = NULL;
 	bool expEncountered;
 	bool dotEncountered;
 	bool prevCharExp = false;
@@ -146,17 +149,17 @@ void TokenCollection::ParseExpression(const string expression)
 							case CharacterType::Number:
 							case CharacterType::Period:
 								state = ParserState::Literal;
-								currentToken = new Token(Token::TokenType::Literal, literals.size());
+								currentToken = make_shared<Token>(Token::TokenType::Literal, substitutables.size());
 								dotEncountered = type == CharacterType::Period;
 								expEncountered = false;
 								break;
 							default:
 								state = ParserState::Substitutable;
-								currentToken = new Token(Token::TokenType::Substitutable, literals.size());
+								currentToken = make_shared<Token>(Token::TokenType::Substitutable, substitutables.size());
 								break;
 						}
-						currentExpressionRef = new ExpressionRef(i);
-						literals.push_back(currentExpressionRef);
+						currentExpressionRef = make_shared<ExpressionRef>(i);
+						substitutables.push_back(currentExpressionRef);
 						tokens.push_back(currentToken);
 						break;
 					case ParserState::Literal:
@@ -224,7 +227,7 @@ void TokenCollection::ParseExpression(const string expression)
 						SetError("Unexpected binary operator found; expected left operand", i);
 						return;
 					}
-					currentToken = new Token(Token::TokenType::Operator, (int)current);
+					currentToken = make_shared<Token>(Token::TokenType::Operator, (int)current);
 					tokens.push_back(currentToken);
 					state = ParserState::Blank;
 				}
@@ -243,13 +246,13 @@ void TokenCollection::ParseExpression(const string expression)
 				}
 				break;
 			case CharacterType::OpenGrouping:
-				currentToken = new Token(Token::TokenType::OpenGrouping, (int)current);
+				currentToken = make_shared<Token>(Token::TokenType::OpenGrouping, (int)current);
 				tokens.push_back(currentToken);
 				openGroupChars.push(i);
 				state = ParserState::Blank;
 				break;
 			case CharacterType::CloseGrouping:
-				currentToken = new Token(Token::TokenType::CloseGrouping, (int)current);
+				currentToken = make_shared<Token>(Token::TokenType::CloseGrouping, (int)current);
 				tokens.push_back(currentToken);
 				if (openGroupChars.empty())
 				{
@@ -313,19 +316,6 @@ void TokenCollection::ParseExpression(const string expression)
 bool TokenCollection::Success()
 {
 	return success;
-}
-
-TokenCollection::~TokenCollection()
-{
-	for (auto &element : literals)
-	{
-		delete element;
-	}
-
-	for (auto &element : tokens)
-	{
-		delete element;
-	}
 }
 
 // Private methods

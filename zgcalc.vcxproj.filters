@@ -18,24 +18,24 @@
     <ClCompile Include="zgcalc.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="Token\TokenCollection.cpp">
+    <ClCompile Include="ExpressionRef.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="Token\ExpressionRef.cpp">
+    <ClCompile Include="Token.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="Token\Token.cpp">
+    <ClCompile Include="TokenCollection.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
   </ItemGroup>
   <ItemGroup>
-    <ClInclude Include="Token\Token.hpp">
+    <ClInclude Include="ExpressionRef.hpp">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="Token\TokenCollection.hpp">
+    <ClInclude Include="Token.hpp">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="Token\ExpressionRef.hpp">
+    <ClInclude Include="TokenCollection.hpp">
       <Filter>Header Files</Filter>
     </ClInclude>
   </ItemGroup>
