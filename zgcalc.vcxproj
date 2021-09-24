@@ -18,6 +18,17 @@
       <Platform>x64</Platform>
     </ProjectConfiguration>
   </ItemGroup>
+  <ItemGroup>
+    <ClInclude Include="src\ExpressionRef.hpp" />
+    <ClInclude Include="src\Token.hpp" />
+    <ClInclude Include="src\TokenCollection.hpp" />
+  </ItemGroup>
+  <ItemGroup>
+    <ClCompile Include="src\ExpressionRef.cpp" />
+    <ClCompile Include="src\Token.cpp" />
+    <ClCompile Include="src\TokenCollection.cpp" />
+    <ClCompile Include="src\zgcalc.cpp" />
+  </ItemGroup>
   <PropertyGroup Label="Globals">
     <VCProjectVersion>16.0</VCProjectVersion>
     <Keyword>Win32Proj</Keyword>
@@ -141,17 +152,6 @@
       <GenerateDebugInformation>true</GenerateDebugInformation>
     </Link>
   </ItemDefinitionGroup>
-  <ItemGroup>
-    <ClCompile Include="ExpressionRef.cpp" />
-    <ClCompile Include="Token.cpp" />
-    <ClCompile Include="TokenCollection.cpp" />
-    <ClCompile Include="zgcalc.cpp" />
-  </ItemGroup>
-  <ItemGroup>
-    <ClInclude Include="ExpressionRef.hpp" />
-    <ClInclude Include="Token.hpp" />
-    <ClInclude Include="TokenCollection.hpp" />
-  </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">
   </ImportGroup>
